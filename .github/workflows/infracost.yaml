@@ -2,18 +2,22 @@
 # describe other options for 'on', 'pull_request' is a good default.
 on: [pull_request]
 env:
-    # If you use private modules you'll need this env variable to use 
-    # the same ssh-agent socket value across all jobs & steps. 
-    SSH_AUTH_SOCK: /tmp/ssh_agent.sock
+  # If you use private modules you'll need this env variable to use
+  # the same ssh-agent socket value across all jobs & steps.
+  SSH_AUTH_SOCK: /tmp/ssh_agent.sock
 jobs:
   infracost:
     name: Infracost
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      # Required to post comments
+      pull-requests: write
 
     env:
-      TF_ROOT: terraform-eks/
-      # If you're using Terraform Cloud/Enterprise and have variables stored on there
-      # you can specify the following to automatically retrieve the variables:
+      TF_ROOT: terraform-eks/modules/eks
+      # If you're using Terraform Cloud/Enterprise and have variables or private modules stored
+      # on there, specify the following to automatically retrieve the variables:
       #   INFRACOST_TERRAFORM_CLOUD_TOKEN: ${{ secrets.TFC_TOKEN }}
       #   INFRACOST_TERRAFORM_CLOUD_HOST: app.terraform.io # Change this if you're using Terraform Enterprise
 
@@ -37,7 +41,7 @@ jobs:
 
       # Checkout the base branch of the pull request (e.g. main/master).
       - name: Checkout base branch
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           ref: '${{ github.event.pull_request.base.ref }}'
 
@@ -50,7 +54,7 @@ jobs:
 
       # Checkout the current PR branch so we can create a diff.
       - name: Checkout PR branch
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       # Generate an Infracost diff and save it to a JSON file.
       - name: Generate Infracost diff
@@ -70,7 +74,7 @@ jobs:
       - name: Post Infracost comment
         run: |
             infracost comment github --path=/tmp/infracost.json \
-                                      --repo=$GITHUB_REPOSITORY \
-                                      --github-token=${{github.token}} \
-                                      --pull-request=${{github.event.pull_request.number}} \
-                                      --behavior=update
+                                     --repo=$GITHUB_REPOSITORY \
+                                     --github-token=${{github.token}} \
+                                     --pull-request=${{github.event.pull_request.number}} \
+                                     --behavior=update
